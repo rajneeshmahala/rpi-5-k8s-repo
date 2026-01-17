@@ -1,10 +1,15 @@
----
+# -------------------------------
+# Namespace
+# -------------------------------
 apiVersion: v1
 kind: Namespace
 metadata:
   name: jenkins
 
 ---
+# -------------------------------
+# Service Account
+# -------------------------------
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -12,6 +17,9 @@ metadata:
   namespace: jenkins
 
 ---
+# -------------------------------
+# Cluster Role
+# -------------------------------
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
@@ -31,6 +39,9 @@ rules:
   verbs: ["get"]
 
 ---
+# -------------------------------
+# Cluster Role Binding
+# -------------------------------
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
@@ -45,6 +56,9 @@ subjects:
   namespace: jenkins
 
 ---
+# -------------------------------
+# ConfigMap
+# -------------------------------
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -54,9 +68,30 @@ data:
   jenkins.yaml: |
     unclassified:
       location:
-        url: http://192.168.31.144:8080/
+        url: http://jenkins.k8s.local/
 
 ---
+# -------------------------------
+# Persistent Volume (6GB)
+# -------------------------------
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: jenkins-pv
+spec:
+  capacity:
+    storage: 6Gi
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: manual
+  hostPath:
+    path: /DATA/jenkins
+
+---
+# -------------------------------
+# Persistent Volume Claim (5GB request from 6GB PV)
+# -------------------------------
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -65,11 +100,15 @@ metadata:
 spec:
   accessModes:
     - ReadWriteOnce
+  storageClassName: manual
   resources:
     requests:
       storage: 5Gi
 
 ---
+# -------------------------------
+# Jenkins Deployment
+# -------------------------------
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -119,6 +158,9 @@ spec:
           name: jenkins-config
 
 ---
+# -------------------------------
+# Jenkins Service (LoadBalancer via MetalLB)
+# -------------------------------
 apiVersion: v1
 kind: Service
 metadata:
